@@ -50,7 +50,32 @@
       </div>
       
       <div class="section-content">
-        <% site.tags.sort('name').each(function(tag){ %>
+        <%
+        // 获取所有标签并按拼音排序（中英混合）
+        const allIndexTags = [];
+        site.tags.each(function(tag) {
+          const firstLetter = getPinyinFirstLetter(tag.name);
+          allIndexTags.push({
+            name: tag.name,
+            path: tag.path,
+            length: tag.length,
+            firstLetter: firstLetter
+          });
+        });
+        
+        // 按拼音首字母排序，然后按完整拼音排序
+        allIndexTags.sort((a, b) => {
+          if (a.firstLetter === '#' && b.firstLetter !== '#') return 1;
+          if (a.firstLetter !== '#' && b.firstLetter === '#') return -1;
+          if (a.firstLetter !== b.firstLetter) {
+            return a.firstLetter.localeCompare(b.firstLetter);
+          }
+          const pinyinA = getPinyinSortKey ? getPinyinSortKey(a.name) : a.name.toLowerCase();
+          const pinyinB = getPinyinSortKey ? getPinyinSortKey(b.name) : b.name.toLowerCase();
+          return pinyinA.localeCompare(pinyinB);
+        });
+        %>
+        <% allIndexTags.forEach(function(tag){ %>
           <div class="tag-item">
             <i class="fas fa-tag"></i>
             <a href="<%- url_for(tag.path) %>"><%= tag.name %></a>

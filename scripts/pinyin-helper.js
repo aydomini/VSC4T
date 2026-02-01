@@ -222,13 +222,72 @@ function getPinyinFirstLetter(str) {
   return getFirstLetter(firstChar);
 }
 
+/**
+ * 获取字符串的完整拼音排序键
+ * 用于实现中英文混合按拼音排序
+ * @param {string} str - 输入字符串
+ * @returns {string} - 拼音排序键（小写）
+ */
+function getPinyinSortKey(str) {
+  if (!str || str.length === 0) {
+    return '';
+  }
+  
+  // 如果 pinyin-pro 可用，获取完整拼音
+  if (pinyinPro) {
+    try {
+      // 获取完整拼音（无声调，空格分隔）
+      const result = pinyinPro.pinyin(str, {
+        toneType: 'none',
+        type: 'array'
+      });
+      if (result && Array.isArray(result)) {
+        return result.join('').toLowerCase();
+      }
+    } catch (e) {
+      // pinyin-pro 转换失败，使用备用方案
+    }
+  }
+  
+  // 备用方案：逐字符获取拼音首字母
+  let sortKey = '';
+  for (let i = 0; i < str.length; i++) {
+    const codePoint = str.codePointAt(i);
+    let char;
+    if (codePoint > 0xFFFF) {
+      char = String.fromCodePoint(codePoint);
+      i++; // 跳过代理对的第二个码元
+    } else {
+      char = str.charAt(i);
+    }
+    
+    // 如果是英文字母，直接添加
+    if (/^[A-Za-z]$/.test(char)) {
+      sortKey += char.toLowerCase();
+    } else if (isCJKCharacter(codePoint)) {
+      // CJK 字符，获取拼音首字母
+      sortKey += getFirstLetter(char).toLowerCase();
+    } else {
+      // 其他字符保持原样
+      sortKey += char;
+    }
+  }
+  
+  return sortKey;
+}
+
 // 注册 Hexo Helper
 hexo.extend.helper.register('getPinyinFirstLetter', function(str) {
   return getPinyinFirstLetter(str);
 });
 
+hexo.extend.helper.register('getPinyinSortKey', function(str) {
+  return getPinyinSortKey(str);
+});
+
 // 导出函数供其他脚本使用
 module.exports = {
   getPinyinFirstLetter,
+  getPinyinSortKey,
   getFirstLetter
 };
